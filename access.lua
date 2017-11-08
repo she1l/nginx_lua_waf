@@ -2,5 +2,5 @@ if pass() then
 elseif
     block() then
 else
-    deny()
+    cc()
 end

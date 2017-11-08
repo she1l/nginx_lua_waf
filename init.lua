@@ -1,15 +1,25 @@
+-- 加载白名单
+whiteList = {}
+whiteListFile = io.open("/application/nginx/conf/waf/whitelist", "r")
+for line in whiteListFile:lines() do
+    table.insert(whiteList, line)
+end
+whiteListFile.close()
+
+
+-- 加载黑名单
+blackList = {}
+blackListFile = io.open("/application/nginx/conf/waf/blacklist", "r")
+for line in blackListFile:lines() do
+    table.insert(blackList, line)
+end
+blackListFile.close()
+
+
+-- 白名单 pass 方法
 function pass()
-    local list = {}
-    local path = "/application/nginx/conf/waf/whitelist"
-    local file = io.open(path, "r")
-
-    for line in file:lines() do
-        table.insert(list, line)
-    end
-    file:close()
-
-    if next(list) ~= nil then
-        for _, ip in ipairs(list) do
+    if next(whiteList) ~= nil then
+        for _, ip in ipairs(whiteList) do
             if ngx.var.remote_addr == ip then
                 return true
             end
@@ -19,18 +29,10 @@ function pass()
 end
 
 
+-- 黑名单 block 方法
 function block()
-    local list = {}
-    local path = "/application/nginx/conf/waf/blacklist"
-    local file = io.open(path, "r")
-
-    for line in file:lines() do
-        table.insert(list, line)
-    end
-    file:close()
-
-    if next(list) ~= nil then
-        for _, ip in ipairs(list) do
+    if next(blackList) ~= nil then
+        for _, ip in ipairs(blackList) do
             if ngx.var.remote_addr == ip then
                 ngx.exit(403)
                 return true
@@ -41,7 +43,8 @@ function block()
 end
 
 
-function deny()
+-- 防 cc 方法
+function cc()
     local count = 10
     local seconds = 60
 
@@ -62,6 +65,9 @@ function deny()
                 if req then
                     if req > count then
                         ngx.header.content_type = "text/html"
+
+                        table.insert(blackList, ngx.var.remote_addr)
+
                         local file = io.open(path, "ab")
 
                         file:write(ngx.var.remote_addr.."\n")
@@ -78,3 +84,5 @@ function deny()
         end
     end
 end
+
+
